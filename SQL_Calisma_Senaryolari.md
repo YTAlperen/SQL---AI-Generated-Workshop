@@ -1,6 +1,6 @@
 # 🗄️ SQL Çalışma Senaryoları
 **Veri Seti:** İngiltere E-Ticaret Verisi | **Toplam Soru:** 30
-
+**Veri Seti Kaynak "https://www.kaggle.com/datasets/nudratabbas/sql-practice-dataset-1-easy-queries":
 ---
 
 ## 📊 Veri Seti Özeti
@@ -189,13 +189,13 @@ ORDER BY ort_siparis_tutari DESC;
 
 **✅ Çözüm:**
 ```sql
-SELECT
-    customer_id,
-    COUNT(*) AS siparis_sayisi
-FROM orders
-GROUP BY customer_id
-HAVING COUNT(*) >= 5
-ORDER BY siparis_sayisi DESC;
+SELECT c.customer_id, count(o.order_id) as toplam_siparis 
+FROM `sql-practise-491318.SQL.customers` as c
+  left join `sql-practise-491318.SQL.orders` as o
+    on c.customer_id = o.customer_id
+group by c.customer_id
+having toplam_siparis >= 5
+order by toplam_siparis DESC;
 ```
 
 ---
@@ -208,13 +208,12 @@ ORDER BY siparis_sayisi DESC;
 
 **✅ Çözüm:**
 ```sql
-SELECT
-    p.category,
-    ROUND(SUM(o.quantity * p.price), 2) AS toplam_ciro
-FROM orders o
-JOIN products p ON o.product_id = p.product_id
-GROUP BY p.category
-ORDER BY toplam_ciro DESC;
+SELECT p.category, round(sum(p.price*o.quantity),2) as ciro
+FROM `sql-practise-491318.SQL.products` as p
+  left join `sql-practise-491318.SQL.orders` as o
+    on p.product_id = o.product_id
+group by p.category
+order by ciro DESC;
 ```
 
 ---
@@ -232,10 +231,11 @@ SELECT
     ROUND(AVG(siparis_sayisi), 2) AS ort_siparis_sayisi
 FROM (
     SELECT customer_id, COUNT(*) AS siparis_sayisi
-    FROM orders
+    FROM `sql-practise-491318.SQL.orders` as o
     GROUP BY customer_id
-) siparis_ozet
-JOIN customers c ON siparis_ozet.customer_id = c.customer_id
+) as siparis_ozet
+JOIN `sql-practise-491318.SQL.customers` as c 
+  ON siparis_ozet.customer_id = c.customer_id
 GROUP BY c.loyalty_member;
 ```
 
@@ -273,15 +273,12 @@ WHERE NOT EXISTS (
 
 **✅ Çözüm:**
 ```sql
--- PostgreSQL
-SELECT
-    TO_CHAR(o.order_date::date, 'YYYY-MM') AS ay,
-    o.payment_method,
-    ROUND(SUM(o.quantity * p.price), 2) AS toplam_ciro
-FROM orders o
-JOIN products p ON o.product_id = p.product_id
-GROUP BY ay, o.payment_method
-ORDER BY ay, o.payment_method;
+SELECT o.payment_method, extract(YEAR from o.order_date) as yil , extract(month from o.order_date)as ay, round(sum(o.quantity*p.price), 2) 
+FROM `sql-practise-491318.SQL.orders` as o
+left join `sql-practise-491318.SQL.products` as p
+  on o.product_id = p.product_id
+group by yil, ay, o.payment_method
+order by yil, ay, o.payment_method
 ```
 
 ---
@@ -302,8 +299,8 @@ WITH musteri_harcama AS (
     SELECT
         o.customer_id,
         SUM(o.quantity * p.price) AS toplam_harcama
-    FROM orders o
-    JOIN products p ON o.product_id = p.product_id
+    FROM `sql-practise-491318.SQL.orders` as o
+    JOIN `sql-practise-491318.SQL.products` as p ON o.product_id = p.product_id
     GROUP BY o.customer_id
 )
 SELECT
@@ -324,24 +321,16 @@ ORDER BY toplam_harcama DESC;
 
 **✅ Çözüm:**
 ```sql
--- Yöntem 1: Subquery
-SELECT product_id, product_name, category, price
-FROM products p
-WHERE price = (
-    SELECT MAX(price)
-    FROM products
-    WHERE category = p.category
-);
+WITH highest_price AS(
+SELECT p.category, p.product_name,p.price, RANK() OVER(
+  PARTITION BY p.category ORDER BY p.price DESC
+) as highest_price
 
--- Yöntem 2: CTE + RANK
-WITH siralama AS (
-    SELECT *,
-           RANK() OVER (PARTITION BY category ORDER BY price DESC) AS rn
-    FROM products
+FROM `sql-practise-491318.SQL.products` as p
 )
-SELECT product_id, product_name, category, price
-FROM siralama
-WHERE rn = 1;
+
+SELECT hp.category, hp.product_name, hp.price FROM highest_price as hp
+WHERE hp.highest_price = 1;
 ```
 
 ---
@@ -358,23 +347,22 @@ WHERE rn = 1;
 
 **✅ Çözüm:**
 ```sql
-SELECT
-    c.customer_id,
-    c.city,
-    COALESCE(siparis.siparis_sayisi, 0) AS siparis_sayisi,
-    CASE
-        WHEN COALESCE(siparis.siparis_sayisi, 0) = 0 THEN 'Kayıp Müşteri'
-        WHEN siparis.siparis_sayisi <= 2 THEN 'Pasif'
-        WHEN siparis.siparis_sayisi <= 5 THEN 'Aktif'
-        ELSE 'Sadık'
-    END AS segment
-FROM customers c
-LEFT JOIN (
-    SELECT customer_id, COUNT(*) AS siparis_sayisi
-    FROM orders
-    GROUP BY customer_id
-) siparis ON c.customer_id = siparis.customer_id
-ORDER BY siparis_sayisi DESC;
+WITH toplam_sip AS (
+SELECT c.customer_id, c.city, count(o.order_id) AS count_order FROM `sql-practise-491318.SQL.customers` AS c
+LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+  ON c.customer_id = o.customer_id
+group by c.customer_id, city
+)
+
+SELECT toplam_sip.customer_id, toplam_sip.city, toplam_sip.count_order,
+  CASE
+    WHEN count_order = 0 THEN "Kayıp Müşteri"
+    WHEN count_order > 0 AND count_order < 3 THEN "Pasif"
+    WHEN count_order >= 3 AND count_order <=5 THEN "Aktif"
+    WHEN count_order >= 6 THEN "Sadık"
+  END AS grup
+FROM toplam_sip
+order by count_order DESC;
 ```
 
 ---
@@ -387,30 +375,23 @@ ORDER BY siparis_sayisi DESC;
 
 **✅ Çözüm:**
 ```sql
-WITH aylik_ciro AS (
-    SELECT
-        TO_CHAR(o.order_date::date, 'YYYY-MM') AS ay,
-        ROUND(SUM(o.quantity * p.price), 2) AS ciro
-    FROM orders o
-    JOIN products p ON o.product_id = p.product_id
-    GROUP BY ay
-),
-buyume AS (
-    SELECT
-        ay,
-        ciro,
-        LAG(ciro) OVER (ORDER BY ay) AS onceki_ay_ciro
-    FROM aylik_ciro
+WITH toplam_ciro AS(
+SELECT EXTRACT(YEAR FROM o.order_date) AS yil, EXTRACT(MONTH FROM o.order_date) AS ay,
+ROUND(SUM(o.quantity*p.price)) AS ciro FROM `sql-practise-491318.SQL.orders` AS o
+LEFT JOIN `sql-practise-491318.SQL.products` AS p
+  ON o.product_id = p.product_id
+GROUP BY yil, ay
+ORDER BY yil, ay
 )
-SELECT
-    ay,
-    ciro,
-    onceki_ay_ciro,
-    ROUND(
-        (ciro - onceki_ay_ciro) / onceki_ay_ciro * 100, 2
-    ) AS buyume_orani_pct
-FROM buyume
-ORDER BY ay;
+
+SELECT CONCAT(yil, ay) AS donem, ciro,
+LAG(ciro)OVER(
+  ORDER BY yil, ay
+) AS prev_month_ciro,
+
+ROUND((ciro-LAG(ciro)OVER( ORDER BY yil, ay)) / 
+  LAG(ciro)OVER(ORDER BY yil, ay) * 100) AS mom
+FROM toplam_ciro;
 ```
 
 ---
@@ -423,20 +404,18 @@ ORDER BY ay;
 
 **✅ Çözüm:**
 ```sql
-WITH urun_satis AS (
-    SELECT
-        p.category,
-        p.product_name,
-        SUM(o.quantity) AS toplam_adet,
-        RANK() OVER (PARTITION BY p.category ORDER BY SUM(o.quantity) DESC) AS rn
-    FROM orders o
-    JOIN products p ON o.product_id = p.product_id
-    GROUP BY p.category, p.product_name
+WITH top_satis_sayisi AS(
+SELECT p.category, p.product_name, ROUND(SUM(o.quantity)) AS satis_sayisi, 
+RANK()OVER(
+  PARTITION BY p.category ORDER BY SUM(o.quantity) DESC
+) AS cok_satan
+FROM `sql-practise-491318.SQL.products` AS p
+LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+  ON p.product_id = o.product_id
+GROUP BY p.category, p.product_name
 )
-SELECT category, product_name, toplam_adet
-FROM urun_satis
-WHERE rn = 1
-ORDER BY category;
+SELECT category, product_name, satis_sayisi FROM top_satis_sayisi
+WHERE cok_satan = 1;
 ```
 
 ---
@@ -449,15 +428,26 @@ ORDER BY category;
 
 **✅ Çözüm:**
 ```sql
-SELECT
-    customer_id,
-    MIN(order_date::date) AS ilk_siparis,
-    MAX(order_date::date) AS son_siparis,
-    MAX(order_date::date) - MIN(order_date::date) AS aktiflik_gun,
-    COUNT(*) AS toplam_siparis
-FROM orders
-GROUP BY customer_id
-ORDER BY aktiflik_gun DESC;
+WITH date_columns AS(
+SELECT c.customer_id, o.order_date,
+  MIN(o.order_date)OVER(
+    PARTITION BY c.customer_id
+  ) AS ilk_tarih,
+  MAX(o.order_date)OVER(
+    PARTITION BY c.customer_id
+  ) AS son_tarih,
+  o.quantity
+  
+FROM `sql-practise-491318.SQL.customers` AS c
+LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+  ON c.customer_id = o.customer_id
+)
+
+SELECT customer_id, ilk_tarih, son_tarih, 
+  DATE_DIFF(son_tarih, ilk_tarih, DAY) AS gun_fark,
+  COUNT(quantity)AS toplam_siparis
+FROM date_columns
+GROUP BY customer_id, ilk_tarih, son_tarih, gun_fark;
 ```
 
 ---
@@ -470,18 +460,23 @@ ORDER BY aktiflik_gun DESC;
 
 **✅ Çözüm:**
 ```sql
-SELECT
-    COUNT(DISTINCT CASE WHEN siparis_sayisi > 1 THEN customer_id END) AS tekrar_eden,
-    COUNT(DISTINCT customer_id) AS toplam,
-    ROUND(
-        COUNT(DISTINCT CASE WHEN siparis_sayisi > 1 THEN customer_id END) * 100.0
-        / COUNT(DISTINCT customer_id), 2
-    ) AS retention_orani_pct
-FROM (
-    SELECT customer_id, COUNT(*) AS siparis_sayisi
-    FROM orders
-    GROUP BY customer_id
-) t;
+WITH musteriler AS(
+SELECT c.customer_id, COUNT(o.order_id) AS siparis_sayisi
+FROM `sql-practise-491318.SQL.customers` AS c
+LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+  ON c.customer_id = o.customer_id
+GROUP BY c.customer_id
+ORDER BY siparis_sayisi DESC
+)
+
+SELECT ROUND((SELECT COUNT(customer_id)FROM musteriler WHERE siparis_sayisi > 1)/
+  (SELECT COUNT(customer_id)FROM musteriler),2)
+FROM musteriler
+;
+
+/* customers tablosuyla join yaptım çünkü hiç sipariş vermemiş müşterilerin de
+hesaplamaya dahil edilmesi gerektiğini düşündüm
+*/
 ```
 
 ---
@@ -498,21 +493,21 @@ FROM (
 
 **✅ Çözüm:**
 ```sql
-WITH gunluk_ciro AS (
-    SELECT
-        o.order_date::date AS gun,
-        ROUND(SUM(o.quantity * p.price), 2) AS gunluk_ciro
-    FROM orders o
-    JOIN products p ON o.product_id = p.product_id
-    GROUP BY gun
+WITH ciro_top AS(
+SELECT o.order_date, 
+SUM(o.quantity * p.price)AS ciro 
+FROM `sql-practise-491318.SQL.orders` AS o
+LEFT JOIN `sql-practise-491318.SQL.products` AS p
+  ON o.product_id = p.product_id
+GROUP BY o.order_date
 )
-SELECT
-    gun,
-    gunluk_ciro,
-    ROUND(SUM(gunluk_ciro) OVER (ORDER BY gun
-        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), 2) AS kumulatif_ciro
-FROM gunluk_ciro
-ORDER BY gun;
+
+SELECT order_date, ciro, 
+ROUND(SUM(ciro)OVER(
+  order by order_date
+),2) AS kumule_ciro
+FROM ciro_top
+ORDER BY order_date;
 ```
 
 ---
@@ -525,23 +520,26 @@ ORDER BY gun;
 
 **✅ Çözüm:**
 ```sql
-WITH musteri_kategori AS (
-    SELECT
-        o.customer_id,
-        p.category,
-        ROUND(SUM(o.quantity * p.price), 2) AS harcama,
-        RANK() OVER (
-            PARTITION BY o.customer_id
-            ORDER BY SUM(o.quantity * p.price) DESC
-        ) AS rn
-    FROM orders o
-    JOIN products p ON o.product_id = p.product_id
-    GROUP BY o.customer_id, p.category
+WITH musteri_harca AS(
+SELECT c.customer_id, p.category,
+ROUND(SUM(o.quantity * p.price),2) AS toplam_harcama,
+RANK()OVER(
+  PARTITION BY c.customer_id ORDER BY SUM(o.quantity * p.price) DESC
+) AS siralama
+FROM `sql-practise-491318.SQL.customers` AS c
+LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+  ON c.customer_id = o.customer_id
+LEFT JOIN `sql-practise-491318.SQL.products` AS p
+  ON o.product_id = p.product_id
+GROUP BY c.customer_id, p.category
+ORDER BY c.customer_id, SUM(o.quantity * p.price) DESC
 )
-SELECT customer_id, category AS favori_kategori, harcama
-FROM musteri_kategori
-WHERE rn = 1
-ORDER BY harcama DESC;
+
+SELECT customer_id, category, toplam_harcama
+FROM musteri_harca
+WHERE siralama = 1;
+
+
 ```
 
 ---
@@ -554,23 +552,15 @@ ORDER BY harcama DESC;
 
 **✅ Çözüm:**
 ```sql
-WITH gunluk AS (
-    SELECT
-        o.order_date::date AS gun,
-        ROUND(SUM(o.quantity * p.price), 2) AS ciro
-    FROM orders o
-    JOIN products p ON o.product_id = p.product_id
-    GROUP BY gun
-)
-SELECT
-    gun,
-    ciro,
-    ROUND(AVG(ciro) OVER (
-        ORDER BY gun
-        ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
-    ), 2) AS hareketli_ort_7gun
-FROM gunluk
-ORDER BY gun;
+SELECT o.order_date, SUM(o.quantity * p.price) AS harcama,
+AVG(SUM(o.quantity * p.price))OVER(
+  ORDER BY o.order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+) AS hareketli_ort
+FROM `sql-practise-491318.SQL.orders` AS o
+LEFT JOIN `sql-practise-491318.SQL.products` AS p
+ON o.product_id = p.product_id
+GROUP BY o.order_date
+ORDER BY o.order_date;
 ```
 
 ---
@@ -583,22 +573,36 @@ ORDER BY gun;
 
 **✅ Çözüm:**
 ```sql
-WITH cohort AS (
-    SELECT
-        c.customer_id,
-        TO_CHAR(c.signup_date::date, 'YYYY-MM') AS cohort_ay,
-        o.order_id,
-        DATE_PART('month', AGE(o.order_date::date, c.signup_date::date)) AS ay_farki
-    FROM customers c
-    JOIN orders o ON c.customer_id = o.customer_id
+WITH cohort AS(
+SELECT c.customer_id, c.signup_date, EXTRACT(MONTH FROM c.signup_date)AS ay,
+EXTRACT(YEAR FROM c.signup_date) AS yil, 
+CASE
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 1 THEN "Ocak Grubu"
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 2 THEN "Şubat Grubu"
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 3 THEN "Mart Grubu"
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 4 THEN "Nisan Grubu"
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 5 THEN "Mayıs Grubu"
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 6 THEN "Haziran Grubu"
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 7 THEN "Temmuz Grubu"
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 8 THEN "Ağustos Grubu"
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 9 THEN "Eylül Grubu"
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 10 THEN "Ekim Grubu"
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 11 THEN "Kasım Grubu"
+  WHEN EXTRACT(MONTH FROM c.signup_date) = 12 THEN "Aralık Grubu"
+END AS cohorts
+FROM `sql-practise-491318.SQL.customers` AS c
 )
-SELECT
-    cohort_ay,
-    COUNT(DISTINCT customer_id) AS musteri_sayisi,
-    COUNT(CASE WHEN ay_farki = 0 THEN order_id END) AS ilk_ay_siparis
-FROM cohort
-GROUP BY cohort_ay
-ORDER BY cohort_ay;
+SELECT c.yil, c.ay, c.cohorts, COUNT(c.customer_id) AS musteri_sayisi, COUNT(o.order_id) AS siparis_sayisi
+
+FROM cohort AS c
+LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+  ON c.customer_id = o.customer_id AND
+     c.yil = EXTRACT(YEAR FROM o.order_date) AND
+     c.ay = EXTRACT(MONTH FROM o.order_date)
+
+GROUP BY c.cohorts, c.yil, c.ay
+
+ORDER BY c.yil, c.ay;
 ```
 
 ---
@@ -611,14 +615,7 @@ ORDER BY cohort_ay;
 
 **✅ Çözüm:**
 ```sql
-SELECT
-    customer_id,
-    MAX(order_date::date) AS son_siparis,
-    DATE '2024-05-15' - MAX(order_date::date) AS gecen_gun
-FROM orders
-GROUP BY customer_id
-HAVING DATE '2024-05-15' - MAX(order_date::date) > 90
-ORDER BY gecen_gun DESC;
+kod yazılacak
 ```
 
 ---
@@ -631,25 +628,7 @@ ORDER BY gecen_gun DESC;
 
 **✅ Çözüm:**
 ```sql
-SELECT
-    p.product_name,
-    p.category,
-    SUM(CASE WHEN o.order_date BETWEEN '2023-10-01' AND '2023-12-31'
-             THEN o.quantity ELSE 0 END) AS q4_2023,
-    SUM(CASE WHEN o.order_date BETWEEN '2024-01-01' AND '2024-03-31'
-             THEN o.quantity ELSE 0 END) AS q1_2024,
-    SUM(CASE WHEN o.order_date BETWEEN '2024-01-01' AND '2024-03-31'
-             THEN o.quantity ELSE 0 END)
-    - SUM(CASE WHEN o.order_date BETWEEN '2023-10-01' AND '2023-12-31'
-               THEN o.quantity ELSE 0 END) AS degisim
-FROM orders o
-JOIN products p ON o.product_id = p.product_id
-GROUP BY p.product_name, p.category
-HAVING SUM(CASE WHEN o.order_date BETWEEN '2024-01-01' AND '2024-03-31'
-                THEN o.quantity ELSE 0 END)
-     > SUM(CASE WHEN o.order_date BETWEEN '2023-10-01' AND '2023-12-31'
-                THEN o.quantity ELSE 0 END)
-ORDER BY degisim DESC;
+kod yazılacak
 ```
 
 ---
@@ -662,28 +641,7 @@ ORDER BY degisim DESC;
 
 **✅ Çözüm:**
 ```sql
-WITH urun_ciro AS (
-    SELECT
-        p.product_name,
-        p.category,
-        ROUND(SUM(o.quantity * p.price), 2) AS ciro
-    FROM orders o
-    JOIN products p ON o.product_id = p.product_id
-    GROUP BY p.product_name, p.category
-),
-genel AS (
-    SELECT SUM(ciro) AS toplam FROM urun_ciro
-)
-SELECT
-    u.product_name,
-    u.category,
-    u.ciro,
-    ROUND(u.ciro * 100.0 / g.toplam, 2) AS ciro_payi_pct,
-    ROUND(SUM(u.ciro) OVER (ORDER BY u.ciro DESC
-        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
-        * 100.0 / g.toplam, 2) AS kumulatif_pct
-FROM urun_ciro u, genel g
-ORDER BY u.ciro DESC;
+kod yazılacak
 ```
 
 ---
@@ -696,23 +654,7 @@ ORDER BY u.ciro DESC;
 
 **✅ Çözüm:**
 ```sql
-SELECT
-    CASE
-        WHEN c.age < 25 THEN '<25'
-        WHEN c.age BETWEEN 25 AND 40 THEN '25-40'
-        WHEN c.age BETWEEN 41 AND 60 THEN '41-60'
-        ELSE '60+'
-    END AS yas_grubu,
-    ROUND(SUM(CASE WHEN p.category='Beauty'      THEN o.quantity*p.price ELSE 0 END),2) AS Beauty,
-    ROUND(SUM(CASE WHEN p.category='Electronics' THEN o.quantity*p.price ELSE 0 END),2) AS Electronics,
-    ROUND(SUM(CASE WHEN p.category='Clothing'    THEN o.quantity*p.price ELSE 0 END),2) AS Clothing,
-    ROUND(SUM(CASE WHEN p.category='Home'        THEN o.quantity*p.price ELSE 0 END),2) AS Home,
-    ROUND(SUM(CASE WHEN p.category='Sports'      THEN o.quantity*p.price ELSE 0 END),2) AS Sports
-FROM customers c
-JOIN orders o ON c.customer_id = o.customer_id
-JOIN products p ON o.product_id = p.product_id
-GROUP BY yas_grubu
-ORDER BY yas_grubu;
+kod yazılacak
 ```
 
 ---
@@ -725,30 +667,7 @@ ORDER BY yas_grubu;
 
 **✅ Çözüm:**
 ```sql
-WITH siparis_araligi AS (
-    SELECT
-        customer_id,
-        order_date::date AS siparis_tarihi,
-        LAG(order_date::date) OVER (
-            PARTITION BY customer_id ORDER BY order_date
-        ) AS onceki_siparis
-    FROM orders
-),
-farklar AS (
-    SELECT
-        customer_id,
-        siparis_tarihi - onceki_siparis AS gun_farki
-    FROM siparis_araligi
-    WHERE onceki_siparis IS NOT NULL
-)
-SELECT
-    customer_id,
-    COUNT(*) AS aralik_sayisi,
-    ROUND(AVG(gun_farki), 1) AS ort_gun_farki
-FROM farklar
-GROUP BY customer_id
-HAVING COUNT(*) >= 2
-ORDER BY ort_gun_farki ASC;
+kod yazılacak
 ```
 
 ---
@@ -766,38 +685,7 @@ Her metriği `NTILE(4)` ile 1–4 arası skorla (R'de düşük gün = yüksek sk
 
 **✅ Çözüm:**
 ```sql
-WITH rfm_ham AS (
-    SELECT
-        o.customer_id,
-        DATE '2024-05-15' - MAX(o.order_date::date) AS recency_gun,
-        COUNT(*) AS frequency,
-        ROUND(SUM(o.quantity * p.price), 2) AS monetary
-    FROM orders o
-    JOIN products p ON o.product_id = p.product_id
-    GROUP BY o.customer_id
-),
-rfm_skor AS (
-    SELECT *,
-        NTILE(4) OVER (ORDER BY recency_gun DESC) AS r_skor,
-        NTILE(4) OVER (ORDER BY frequency ASC)    AS f_skor,
-        NTILE(4) OVER (ORDER BY monetary ASC)     AS m_skor
-    FROM rfm_ham
-)
-SELECT
-    customer_id,
-    recency_gun,
-    frequency,
-    monetary,
-    r_skor, f_skor, m_skor,
-    (r_skor + f_skor + m_skor) AS rfm_toplam,
-    CASE
-        WHEN (r_skor + f_skor + m_skor) >= 10 THEN '🏆 Şampiyonlar'
-        WHEN (r_skor + f_skor + m_skor) >= 7  THEN '⭐ Sadık Müşteri'
-        WHEN (r_skor + f_skor + m_skor) >= 5  THEN '🔄 Potansiyel'
-        ELSE '⚠️ Risk Altında'
-    END AS rfm_segment
-FROM rfm_skor
-ORDER BY rfm_toplam DESC;
+kod yazılacak
 ```
 
 ---
@@ -807,13 +695,8 @@ ORDER BY rfm_toplam DESC;
 **📋 Görev:** Aşağıdaki sorgunun neden yavaş çalışabileceğini açıkla ve hangi index'lerin eklenmesi gerektiğini belirt.
 
 ```sql
-SELECT c.city, p.category, SUM(o.quantity * p.price) AS ciro
-FROM orders o
-JOIN customers c ON o.customer_id = c.customer_id
-JOIN products p ON o.product_id = p.product_id
-WHERE c.city = 'London'
-  AND o.order_date >= '2024-01-01'
-GROUP BY c.city, p.category;
+kod yazılacak
+
 ```
 
 **💡 İpucu:** `EXPLAIN ANALYZE` çıktısını yorumlamayı düşün. JOIN yapılan kolonlarda ve `WHERE` filtrelerinde index olmaması `Seq Scan` tetikler.
@@ -821,35 +704,17 @@ GROUP BY c.city, p.category;
 **✅ Çözüm:**
 
 **Sorunlar:**
-1. `orders.customer_id` — JOIN kolonu, index yok → Seq Scan
-2. `orders.product_id` — JOIN kolonu, index yok → Seq Scan
-3. `orders.order_date` — WHERE filtresi, index yok → tüm tablo taranır
-4. `customers.city` — WHERE filtresi, index yok → Seq Scan
+
 
 **Eklenecek Index'ler:**
 ```sql
--- Join kolonları
-CREATE INDEX idx_orders_customer_id ON orders(customer_id);
-CREATE INDEX idx_orders_product_id  ON orders(product_id);
+kod yazılacak
 
--- WHERE filtreleri
-CREATE INDEX idx_orders_order_date  ON orders(order_date);
-CREATE INDEX idx_customers_city     ON customers(city);
-
--- Composite index (city + order_date birlikte kullanılıyorsa)
-CREATE INDEX idx_orders_date_customer ON orders(order_date, customer_id);
 ```
 
 **Sorgu Sonrası Kontrol:**
 ```sql
-EXPLAIN ANALYZE
-SELECT c.city, p.category, SUM(o.quantity * p.price) AS ciro
-FROM orders o
-JOIN customers c ON o.customer_id = c.customer_id
-JOIN products p ON o.product_id = p.product_id
-WHERE c.city = 'London'
-  AND o.order_date >= '2024-01-01'
-GROUP BY c.city, p.category;
+
 ```
 
 ---
