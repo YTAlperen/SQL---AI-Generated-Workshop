@@ -1,7 +1,7 @@
 # 🗄️ SQL Çalışma Senaryoları
 **Veri Seti:** İngiltere E-Ticaret Verisi | **Toplam Soru:** 30
 
-**Veri Seti Kaynak "https://www.kaggle.com/datasets/nudratabbas/sql-practice-dataset-1-easy-queries":
+Veri Seti Kaynak "https://www.kaggle.com/datasets/nudratabbas/sql-practice-dataset-1-easy-queries":
 ---
 
 ## 📊 Veri Seti Özeti
