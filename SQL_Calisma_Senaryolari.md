@@ -50,8 +50,6 @@ products  (product_id)  ──< orders (product_id)
 
 **📋 Görev:** London'da yaşayan, 30 yaşından büyük tüm müşterileri yaşa göre küçükten büyüğe listele.
 
-**💡 İpucu:** `WHERE` içinde birden fazla koşul birleştirmek için `AND` kullanabilirsin. Sıralama için `ORDER BY` yeterli.
-
 **✅ Çözüm:**
 ```sql
 SELECT
@@ -72,8 +70,6 @@ ORDER BY age ASC;
 
 **📋 Görev:** Fiyatı 200'ün üzerinde olan ürünleri, en pahalıdan en ucuza sıralayarak getir.
 
-**💡 İpucu:** `WHERE` ile fiyat filtresi, `ORDER BY price DESC` ile sıralama yapabilirsin.
-
 **✅ Çözüm:**
 ```sql
 SELECT
@@ -92,8 +88,6 @@ ORDER BY price DESC;
 
 **📋 Görev:** Siparişlerde kullanılan tüm farklı ödeme yöntemlerini tekrarsız listele.
 
-**💡 İpucu:** Tekrar eden satırları kaldırmak için `SELECT DISTINCT` kullan.
-
 **✅ Çözüm:**
 ```sql
 SELECT DISTINCT payment_method
@@ -105,8 +99,6 @@ FROM orders;
 ### Soru 4 — Belirli Tarih Aralığında Siparişler
 
 **📋 Görev:** 2024 yılının ilk çeyreğinde (Ocak–Mart) verilen siparişleri listele.
-
-**💡 İpucu:** Tarih filtrelemesi için `BETWEEN` ya da `>=` / `<=` operatörlerini kullanabilirsin.
 
 **✅ Çözüm:**
 ```sql
@@ -121,8 +113,6 @@ ORDER BY order_date;
 ### Soru 5 — Kategori Bazlı Ürün Sayısı
 
 **📋 Görev:** Her kategoride kaç ürün olduğunu bul.
-
-**💡 İpucu:** `GROUP BY` ile kategorileri grupla, `COUNT(*)` ile say.
 
 **✅ Çözüm:**
 ```sql
@@ -144,8 +134,6 @@ ORDER BY urun_sayisi DESC;
 
 **📋 Görev:** Her müşterinin toplam ne kadar harcama yaptığını hesapla (fiyat × miktar). En çok harcayan 10 müşteriyi göster.
 
-**💡 İpucu:** `orders` ve `products` tablolarını `JOIN` ile birleştir. `quantity * price` ile toplam tutarı hesapla, `GROUP BY customer_id` ile grupla.
-
 **✅ Çözüm:**
 ```sql
 SELECT
@@ -163,8 +151,6 @@ LIMIT 10;
 ### Soru 7 — Şehir Bazlı Ortalama Sipariş Tutarı
 
 **📋 Görev:** Her şehirdeki müşterilerin ortalama sipariş tutarını hesapla. Sonuçları yüksekten düşüğe sırala.
-
-**💡 İpucu:** Üç tabloyu birleştirmen gerekecek: `customers`, `orders`, `products`. `AVG(quantity * price)` hesapla.
 
 **✅ Çözüm:**
 ```sql
@@ -184,17 +170,15 @@ ORDER BY ort_siparis_tutari DESC;
 
 **📋 Görev:** Toplam sipariş sayısı 5 ve üzerinde olan müşterileri bul. Sipariş sayısına göre azalan sırada listele.
 
-**💡 İpucu:** `GROUP BY` sonrası filtreleme için `HAVING` kullanmalısın, `WHERE` değil.
-
 **✅ Çözüm:**
 ```sql
-SELECT c.customer_id, count(o.order_id) as toplam_siparis 
-FROM `sql-practise-491318.SQL.customers` as c
-  left join `sql-practise-491318.SQL.orders` as o
-    on c.customer_id = o.customer_id
-group by c.customer_id
-having toplam_siparis >= 5
-order by toplam_siparis DESC;
+SELECT c.customer_id, COUNT(o.order_id) AS toplam_siparis 
+FROM `sql-practise-491318.SQL.customers` AS c
+  LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+    ON c.customer_id = o.customer_id
+GROUP BY c.customer_id
+HAVING toplam_siparis >= 5
+ORDER BY toplam_siparis DESC;
 ```
 
 ---
@@ -203,16 +187,14 @@ order by toplam_siparis DESC;
 
 **📋 Görev:** Her ürün kategorisinin toplam cirosunu hesapla (fiyat × miktar). En kazançlı kategori hangisi?
 
-**💡 İpucu:** `orders` ve `products` JOIN'lendikten sonra kategori bazında `SUM(quantity * price)` hesapla.
-
 **✅ Çözüm:**
 ```sql
-SELECT p.category, round(sum(p.price*o.quantity),2) as ciro
-FROM `sql-practise-491318.SQL.products` as p
-  left join `sql-practise-491318.SQL.orders` as o
-    on p.product_id = o.product_id
-group by p.category
-order by ciro DESC;
+SELECT p.category, ROUND(SUM(p.price*o.quantity),2) AS ciro
+FROM `sql-practise-491318.SQL.products` AS p
+  LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+    ON p.product_id = o.product_id
+GROUP BY p.category
+ORDER BY ciro DESC;
 ```
 
 ---
@@ -220,8 +202,6 @@ order by ciro DESC;
 ### Soru 10 — Loyalty Üyesi Olan vs Olmayan: Karşılaştırma
 
 **📋 Görev:** Loyalty üyesi olan ve olmayan müşterilerin ortalama sipariş sayısını karşılaştır.
-
-**💡 İpucu:** Önce her müşterinin sipariş sayısını bul, sonra bunu `customers` tablosuyla `JOIN`'le ve `loyalty_member` bazında grupla.
 
 **✅ Çözüm:**
 ```sql
@@ -243,8 +223,6 @@ GROUP BY c.loyalty_member;
 ### Soru 11 — Hiç Sipariş Vermemiş Müşteriler
 
 **📋 Görev:** Şimdiye kadar hiç sipariş vermemiş müşterileri listele.
-
-**💡 İpucu:** `LEFT JOIN` + `WHERE orders.customer_id IS NULL` ya da `NOT IN` / `NOT EXISTS` yaklaşımını kullanabilirsin.
 
 **✅ Çözüm:**
 ```sql
@@ -268,16 +246,14 @@ WHERE NOT EXISTS (
 
 **📋 Görev:** Her ödeme yöntemi için aylık toplam ciroyu hesapla. Yıl-ay ve ödeme yöntemine göre grupla.
 
-**💡 İpucu:** `DATE_FORMAT(order_date, '%Y-%m')` (MySQL) veya `TO_CHAR(order_date, 'YYYY-MM')` (PostgreSQL) ile ay bilgisini çıkar.
-
 **✅ Çözüm:**
 ```sql
-SELECT o.payment_method, extract(YEAR from o.order_date) as yil , extract(month from o.order_date)as ay, round(sum(o.quantity*p.price), 2) 
-FROM `sql-practise-491318.SQL.orders` as o
-left join `sql-practise-491318.SQL.products` as p
-  on o.product_id = p.product_id
-group by yil, ay, o.payment_method
-order by yil, ay, o.payment_method
+SELECT o.payment_method, EXTRACT(YEAR FROM o.order_date) AS yil , EXTRACT(MONTH FROM o.order_date)AS ay, ROUND(SUM(o.quantity*p.price), 2) 
+FROM `sql-practise-491318.SQL.orders` AS o
+LEFT JOIN `sql-practise-491318.SQL.products` AS p
+  ON o.product_id = p.product_id
+GROUP BY yil, ay, o.payment_method
+ORDER BY yil, ay, o.payment_method;
 ```
 
 ---
@@ -290,16 +266,14 @@ order by yil, ay, o.payment_method
 
 **📋 Görev:** Kendi toplam harcaması, tüm müşterilerin ortalama harcamasının üzerinde olan müşterileri listele.
 
-**💡 İpucu:** Önce her müşterinin toplam harcamasını hesapla, ardından `HAVING` içinde veya subquery olarak genel ortalamayla karşılaştır.
-
 **✅ Çözüm:**
 ```sql
 WITH musteri_harcama AS (
     SELECT
         o.customer_id,
         SUM(o.quantity * p.price) AS toplam_harcama
-    FROM `sql-practise-491318.SQL.orders` as o
-    JOIN `sql-practise-491318.SQL.products` as p ON o.product_id = p.product_id
+    FROM `sql-practise-491318.SQL.orders` AS o
+    JOIN `sql-practise-491318.SQL.products` AS p ON o.product_id = p.product_id
     GROUP BY o.customer_id
 )
 SELECT
@@ -316,19 +290,17 @@ ORDER BY toplam_harcama DESC;
 
 **📋 Görev:** Her kategorideki en yüksek fiyatlı ürünü bul.
 
-**💡 İpucu:** Correlated subquery ya da `RANK()` window function ile çözebilirsin. Kategoriye göre grupla ve `MAX(price)` ile eşleştir.
-
 **✅ Çözüm:**
 ```sql
 WITH highest_price AS(
 SELECT p.category, p.product_name,p.price, RANK() OVER(
   PARTITION BY p.category ORDER BY p.price DESC
-) as highest_price
+) AS highest_price
 
-FROM `sql-practise-491318.SQL.products` as p
+FROM `sql-practise-491318.SQL.products` AS p
 )
 
-SELECT hp.category, hp.product_name, hp.price FROM highest_price as hp
+SELECT hp.category, hp.product_name, hp.price FROM highest_price AS hp
 WHERE hp.highest_price = 1;
 ```
 
@@ -342,15 +314,13 @@ WHERE hp.highest_price = 1;
 - `3–5 sipariş` → "Aktif"
 - `6+` → "Sadık"
 
-**💡 İpucu:** `LEFT JOIN` ile sipariş vermeyenleri de dahil et. `COALESCE` ile NULL değerleri 0'a çevir. `CASE WHEN` ile segmente at.
-
 **✅ Çözüm:**
 ```sql
 WITH toplam_sip AS (
 SELECT c.customer_id, c.city, count(o.order_id) AS count_order FROM `sql-practise-491318.SQL.customers` AS c
 LEFT JOIN `sql-practise-491318.SQL.orders` AS o
   ON c.customer_id = o.customer_id
-group by c.customer_id, city
+GROUP BY c.customer_id, city
 )
 
 SELECT toplam_sip.customer_id, toplam_sip.city, toplam_sip.count_order,
@@ -361,7 +331,7 @@ SELECT toplam_sip.customer_id, toplam_sip.city, toplam_sip.count_order,
     WHEN count_order >= 6 THEN "Sadık"
   END AS grup
 FROM toplam_sip
-order by count_order DESC;
+ORDER BY count_order DESC;
 ```
 
 ---
@@ -369,8 +339,6 @@ order by count_order DESC;
 ### Soru 16 — Aylık Büyüme Oranı (MoM)
 
 **📋 Görev:** Her ayın toplam cirosunu ve bir önceki aya kıyasla yüzdesel büyüme oranını hesapla.
-
-**💡 İpucu:** `LAG()` window function ile önceki ayın değerine ulaşabilirsin. `(bu_ay - onceki_ay) / onceki_ay * 100` formülünü kullan.
 
 **✅ Çözüm:**
 ```sql
@@ -399,8 +367,6 @@ FROM toplam_ciro;
 
 **📋 Görev:** Her kategoride en çok satan (toplam adet bazında) ürünü bul.
 
-**💡 İpucu:** `SUM(quantity)` ile ürün bazında toplam satışı hesapla, `RANK() OVER (PARTITION BY category ...)` ile kategori içinde sırala.
-
 **✅ Çözüm:**
 ```sql
 WITH top_satis_sayisi AS(
@@ -422,8 +388,6 @@ WHERE cok_satan = 1;
 ### Soru 18 — İlk ve Son Sipariş Tarihi
 
 **📋 Görev:** Her müşterinin ilk ve son sipariş tarihini, iki tarih arasındaki gün farkını ve toplam sipariş sayısını getir.
-
-**💡 İpucu:** `MIN()` ve `MAX()` ile tarihleri bul. `MAX(date) - MIN(date)` veya `DATEDIFF()` ile gün farkını hesapla.
 
 **✅ Çözüm:**
 ```sql
@@ -454,8 +418,6 @@ GROUP BY customer_id, ilk_tarih, son_tarih, gun_fark;
 ### Soru 19 — Tekrar Eden Müşteri Oranı
 
 **📋 Görev:** Birden fazla sipariş veren müşterilerin tüm müşterilere oranını hesapla (Retention Rate).
-
-**💡 İpucu:** Subquery ile sipariş sayısı > 1 olan müşterileri say, toplam müşteri sayısına böl.
 
 **✅ Çözüm:**
 ```sql
@@ -488,8 +450,6 @@ hesaplamaya dahil edilmesi gerektiğini düşündüm
 
 **📋 Görev:** Siparişleri tarihe göre sırala, her gün için o güne kadar biriken toplam ciroyu hesapla.
 
-**💡 İpucu:** `SUM() OVER (ORDER BY order_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)` ile kümülatif toplam alabilirsin.
-
 **✅ Çözüm:**
 ```sql
 WITH ciro_top AS(
@@ -503,7 +463,7 @@ GROUP BY o.order_date
 
 SELECT order_date, ciro, 
 ROUND(SUM(ciro)OVER(
-  order by order_date
+  ORDER BY order_date
 ),2) AS kumule_ciro
 FROM ciro_top
 ORDER BY order_date;
@@ -514,8 +474,6 @@ ORDER BY order_date;
 ### Soru 21 — Her Müşterinin En Çok Harcadığı Kategori
 
 **📋 Görev:** Her müşteri için en fazla para harcadığı ürün kategorisini bul.
-
-**💡 İpucu:** Müşteri + kategori bazında harcama hesapla, ardından `RANK() OVER (PARTITION BY customer_id ORDER BY harcama DESC)` ile her müşteri için ilk sırayı al.
 
 **✅ Çözüm:**
 ```sql
@@ -547,8 +505,6 @@ WHERE siralama = 1;
 
 **📋 Görev:** Her gün için, o günü ve önceki 6 günü kapsayan 7 günlük hareketli ortalama ciroyu hesapla.
 
-**💡 İpucu:** `AVG() OVER (ORDER BY gun ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)` kullanımına bak.
-
 **✅ Çözüm:**
 ```sql
 SELECT o.order_date, SUM(o.quantity * p.price) AS harcama,
@@ -567,8 +523,6 @@ ORDER BY o.order_date;
 ### Soru 23 — Cohort Analizi: Kayıt Ayına Göre İlk Ay Siparişleri
 
 **📋 Görev:** Müşterileri kayıt oldukları aya (cohort) göre grupla. Her cohort'un kayıt ayında kaç sipariş verdiğini bul.
-
-**💡 İpucu:** `TO_CHAR(signup_date, 'YYYY-MM')` ile cohort'u belirle. `order_date` ile `signup_date` arasındaki ay farkını hesapla. `DATE_PART('month', age(order_date, signup_date))` kullanabilirsin.
 
 **✅ Çözüm:**
 ```sql
@@ -610,8 +564,6 @@ ORDER BY c.yil, c.ay;
 
 **📋 Görev:** En az 1 siparişi olan ama son siparişinden bu yana 90 günden fazla geçmiş müşterileri tespit et. (Referans tarih: 2024-05-15)
 
-**💡 İpucu:** `MAX(order_date)` ile son sipariş tarihini bul. Referans tarihinden çıkar, 90 günden büyük olanları filtrele.
-
 **✅ Çözüm:**
 ```sql
 kod yazılacak
@@ -622,8 +574,6 @@ kod yazılacak
 ### Soru 25 — Ürün Bazlı Satış Eğilimi: Çeyrek Karşılaştırması
 
 **📋 Görev:** Her ürün için 2023 Q4 ve 2024 Q1 satışlarını karşılaştır. Satışı artan ürünleri bul.
-
-**💡 İpucu:** `CASE WHEN` veya `FILTER` ile quarter bazlı SUM alabilirsin. `PIVOT` benzeri bir yapı kuracaksın.
 
 **✅ Çözüm:**
 ```sql
@@ -636,8 +586,6 @@ kod yazılacak
 
 **📋 Görev:** Her ürünün toplam ciro içindeki payını ve kümülatif yüzdesini hesapla. (80/20 kuralını test et)
 
-**💡 İpucu:** `SUM() OVER (ORDER BY ciro DESC)` ile kümülatif toplamı al, genel toplamla böl.
-
 **✅ Çözüm:**
 ```sql
 kod yazılacak
@@ -649,8 +597,6 @@ kod yazılacak
 
 **📋 Görev:** Müşterileri yaş grubuna göre segmentlere ayır (`<25`, `25–40`, `41–60`, `60+`), her yaş grubunun hangi kategorilere ne kadar harcadığını göster.
 
-**💡 İpucu:** `CASE WHEN` ile yaş grubu oluştur, sonra kategori ile `GROUP BY` yap. Pivot benzeri sonuç için ayrı `SUM(CASE WHEN category=...)` kullan.
-
 **✅ Çözüm:**
 ```sql
 kod yazılacak
@@ -661,8 +607,6 @@ kod yazılacak
 ### Soru 28 — Consecutive Purchase Gap: Siparişler Arası Ortalama Gün
 
 **📋 Görev:** Birden fazla siparişi olan müşteriler için, ardışık siparişler arasındaki ortalama gün farkını hesapla.
-
-**💡 İpucu:** `LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date)` ile önceki siparişi bul, farkı hesapla, müşteri bazında ortala.
 
 **✅ Çözüm:**
 ```sql
@@ -680,8 +624,6 @@ kod yazılacak
 
 Her metriği `NTILE(4)` ile 1–4 arası skorla (R'de düşük gün = yüksek skor).
 
-**💡 İpucu:** CTE zinciri kullan: önce ham metrikleri hesapla, sonra `NTILE(4)` ile skorla, son CTE'de birleştir.
-
 **✅ Çözüm:**
 ```sql
 kod yazılacak
@@ -697,8 +639,6 @@ kod yazılacak
 kod yazılacak
 
 ```
-
-**💡 İpucu:** `EXPLAIN ANALYZE` çıktısını yorumlamayı düşün. JOIN yapılan kolonlarda ve `WHERE` filtrelerinde index olmaması `Seq Scan` tetikler.
 
 **✅ Çözüm:**
 
