@@ -604,7 +604,24 @@ WHERE sure_gun > 90;
 
 **✅ Çözüm:**
 ```sql
-kod yazılacak
+WITH siparis_sayi_CTE AS(
+SELECT o.order_date, 
+CASE
+  WHEN o.order_date >= "2023-10-01" AND o.order_date < "2024-01-01" THEN 202304
+  WHEN o.order_date >= "2024-01-01" AND o.order_date < "2024-04-01" THEN 202401
+END AS ceyrek, 
+p.product_name, SUM(o.quantity) AS siparis
+FROM `sql-practise-491318.SQL.products` AS p
+LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+  ON o.product_id = p.product_id
+GROUP BY o.order_date, p.product_name
+)
+
+SELECT ceyrek, product_name, SUM(siparis)AS toplam_siparis
+FROM siparis_sayi_CTE
+WHERE ceyrek IS NOT NULL
+GROUP BY ceyrek, product_name
+;
 ```
 
 ---
