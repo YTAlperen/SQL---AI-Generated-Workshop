@@ -566,7 +566,34 @@ ORDER BY c.yil, c.ay;
 
 **✅ Çözüm:**
 ```sql
-kod yazılacak
+WITH son_siparisler AS(
+SELECT c.customer_id, MAX(o.order_date) AS son_tarih, 
+  DATE("2024-05-15") AS referans_yil, EXTRACT(DAY FROM DATE("2024-05-15") - MAX(o.order_date)) AS sure_gun
+FROM `sql-practise-491318.SQL.customers` AS c
+LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+  ON o.customer_id = c.customer_id
+GROUP BY c.customer_id
+)
+
+SELECT * FROM son_siparisler
+WHERE sure_gun > 90;
+
+/*
+DATE_DIFF versiyonu
+*/
+
+WITH son_siparisler AS(
+SELECT c.customer_id, MAX(o.order_date) AS son_tarih, 
+  DATE_DIFF(DATE("2024-05-15"), MAX(o.order_date), DAY) AS sure_gun
+FROM `sql-practise-491318.SQL.customers` AS c
+LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+  ON o.customer_id = c.customer_id
+GROUP BY c.customer_id
+)
+
+SELECT * FROM son_siparisler
+WHERE sure_gun > 90;
+
 ```
 
 ---
