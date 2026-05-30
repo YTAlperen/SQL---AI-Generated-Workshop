@@ -632,7 +632,31 @@ GROUP BY ceyrek, product_name
 
 **✅ Çözüm:**
 ```sql
-kod yazılacak
+WITH ciroCTE AS (
+    SELECT 
+        o.product_id,
+        ROUND(SUM(o.quantity * p.price), 1) AS ciro,
+    FROM `sql-practise-491318.SQL.orders` AS o
+    LEFT JOIN `sql-practise-491318.SQL.products` AS p
+        ON p.product_id = o.product_id
+    GROUP BY o.product_id
+    ORDER BY ciro DESC
+),
+
+genel AS(
+  SELECT SUM(ciro) AS toplam FROM ciroCTE
+)
+
+SELECT
+    c.product_id,
+    c.ciro,
+    ROUND(g.toplam,2),
+    ROUND(c.ciro * 100.0 / g.toplam, 2) AS ciro_payi_pct,
+    ROUND(SUM(c.ciro) OVER (ORDER BY c.ciro DESC
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+        * 100.0 / g.toplam, 2) AS kumulatif_pct
+FROM ciroCTE AS c, genel AS g
+ORDER BY c.ciro DESC;
 ```
 
 ---
