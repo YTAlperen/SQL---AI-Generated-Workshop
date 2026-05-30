@@ -667,7 +667,35 @@ ORDER BY c.ciro DESC;
 
 **✅ Çözüm:**
 ```sql
-kod yazılacak
+/*
+Görev: Müşterileri yaş grubuna göre segmentlere ayır (<25, 25–40, 41–60, 60+), her yaş grubunun hangi kategorilere ne kadar harcadığını göster.
+*/
+WITH segment AS(
+SELECT c.customer_id, c.age, p.category, ROUND(SUM(o.quantity * p.price),2) AS tutar,
+CASE
+  WHEN c.age < 25 THEN "<25"
+  WHEN c.age BETWEEN 25 AND 40 THEN "25–40"
+  WHEN c.age BETWEEN 41 AND 60 THEN "41–60"
+  WHEN c.age > 60 THEN "60+"
+END AS musteri_segment
+FROM `sql-practise-491318.SQL.customers` AS c
+LEFT JOIN `sql-practise-491318.SQL.orders` AS o
+  ON o.customer_id = c.customer_id
+LEFT JOIN `sql-practise-491318.SQL.products` AS p
+  ON o.product_id = p.product_id
+
+GROUP BY c.customer_id, c.age, p.category
+
+)
+
+SELECT musteri_segment,
+ROUND(SUM(CASE WHEN category = "Beauty" THEN tutar END),2) AS Beauty,
+ROUND(SUM(CASE WHEN category = "Clothing" THEN tutar END),2) AS Clothing,
+ROUND(SUM(CASE WHEN category = "Electronics" THEN tutar END),2) AS Electronics,
+ROUND(SUM(CASE WHEN category = "Home" THEN tutar END),2) AS Home,
+ROUND(SUM(CASE WHEN category = "Sports" THEN tutar END),2) AS Sports,
+FROM segment
+GROUP BY musteri_segment;
 ```
 
 ---
