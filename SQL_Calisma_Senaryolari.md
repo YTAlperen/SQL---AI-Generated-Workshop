@@ -706,7 +706,29 @@ GROUP BY musteri_segment;
 
 **✅ Çözüm:**
 ```sql
-kod yazılacak
+WITH musteri_siparis AS(
+SELECT o.customer_id, COUNT(o.order_id) AS siparis_sayi
+FROM `sql-practise-491318.SQL.orders` AS o
+GROUP BY o.customer_id
+HAVING siparis_sayi > 1
+),
+
+fark AS(
+SELECT m.customer_id, o2.order_id, o2.order_date, LAG(o2.order_date)OVER(PARTITION BY m.customer_id ORDER BY o2.order_date ASC) AS onceki_siparis,
+EXTRACT(DAY FROM (o2.order_date - LAG(o2.order_date)OVER(PARTITION BY m.customer_id ORDER BY o2.order_date ASC))) AS gun_fark
+FROM musteri_siparis AS m
+INNER JOIN `sql-practise-491318.SQL.orders` AS o2
+ ON m.customer_id = o2.customer_id
+ORDER BY m.customer_id, o2.order_date ASC
+
+)
+
+SELECT customer_id, COUNT(gun_fark)AS aralik_sayi, ROUND(AVG(gun_fark),1)AS ort_gun_farki 
+FROM fark
+WHERE fark IS NOT NULL
+GROUP BY customer_id
+ORDER BY ort_gun_farki ASC;
+
 ```
 
 ---
