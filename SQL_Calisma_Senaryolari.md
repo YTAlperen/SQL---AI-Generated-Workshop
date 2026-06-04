@@ -744,7 +744,53 @@ Her metriği `NTILE(4)` ile 1–4 arası skorla (R'de düşük gün = yüksek sk
 
 **✅ Çözüm:**
 ```sql
-kod yazılacak
+WITH rfm AS(
+SELECT o.customer_id, o.order_date,
+EXTRACT(DAY FROM ("2024-06-01") - MAX(o.order_date)
+  OVER(
+    PARTITION BY o.customer_id ORDER BY o.order_date DESC))AS recency,
+COUNT(o.order_id)AS frequency,
+SUM(o.quantity * p.price)AS monetary
+
+FROM `sql-practise-491318.SQL.orders` AS o
+LEFT JOIN `sql-practise-491318.SQL.products` AS p
+  ON o.product_id = p.product_id
+GROUP BY o.customer_id, o.order_date
+ORDER BY o.customer_id, o.order_date DESC
+),
+
+rfm2 AS(
+SELECT customer_id, recency, SUM(frequency)AS frequency, ROUND(SUM(monetary),2)AS monetary 
+FROM rfm
+GROUP BY customer_id, recency
+),
+
+segment AS(
+SELECT *, 
+NTILE(4)OVER(ORDER BY recency DESC)AS r_skor,
+NTILE(4)OVER(ORDER BY frequency ASC)AS f_skor,
+NTILE(4)OVER(ORDER BY monetary ASC)AS m_skor,
+
+(
+NTILE(4)OVER(ORDER BY recency ASC)+
+NTILE(4)OVER(ORDER BY frequency ASC)+
+NTILE(4)OVER(ORDER BY monetary ASC)
+)AS toplam
+FROM rfm2
+)
+
+SELECT *,
+CASE
+  WHEN toplam >9 THEN "Şampiyon"
+  WHEN toplam BETWEEN 7 AND 9 THEN "Sadık Müşteri"
+  WHEN toplam BETWEEN 5 AND 6 THEN "Potansiyel"
+  WHEN toplam BETWEEN 3 AND 4 THEN "Risk Altında"
+
+END AS segment
+FROM segment;
+
+
+
 ```
 
 ---
